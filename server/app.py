@@ -19,7 +19,7 @@ from audio_pipeline import decode_to_16k_mono, yamnet_analyze
 
 CRY_GATE_THRESHOLD = float(os.environ.get("CRY_GATE_THRESHOLD", "0.15"))
 MODEL_PATH = pathlib.Path(os.environ.get("MODEL_PATH", pathlib.Path(__file__).parent / "model.joblib"))
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
 
 # label -> parent-facing meaning
 LABEL_TEXT = {
@@ -75,13 +75,16 @@ def _gemini_second_opinion(wav_bytes: bytes) -> dict | None:
     try:
         r = httpx.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
-            params={"key": key}, json=payload, timeout=20,
+            params={"key": key}, json=payload, timeout=45,
         )
         r.raise_for_status()
         text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
         return json.loads(text)
+    except httpx.HTTPStatusError as e:
+        # never echo e.request.url back to a client -- it carries ?key=<GEMINI_API_KEY>
+        return {"error": f"gemini http {e.response.status_code}: {e.response.text[:300]}"}
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": type(e).__name__}
 
 
 @app.post("/analyze")
