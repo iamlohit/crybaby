@@ -1,0 +1,12 @@
+[Unit]
+Description=crybaby cry classifier
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/crybaby-server
+ExecStart=%h/crybaby-server/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8977
+Restart=on-failure
+EnvironmentFile=-%h/crybaby-server/.env
+
+[Install]
+WantedBy=default.target

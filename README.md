@@ -54,9 +54,9 @@ Any ESP32-S3 board with an I2S mic and SPI LCD works with pin changes in
 ### 1. Classifier server (any Linux box on your LAN)
 
 ```bash
-rsync -a server/ yourserver:baby-voice-server/
+rsync -a server/ yourserver:crybaby-server/
 ssh yourserver
-cd baby-voice-server
+cd crybaby-server
 python3 -m venv venv && venv/bin/pip install -r requirements.txt
 venv/bin/python train.py            # clones the corpus, trains, prints honest CV metrics
 venv/bin/uvicorn app:app --host 0.0.0.0 --port 8977

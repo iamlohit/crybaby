@@ -2,15 +2,15 @@
 
 Two-stage pipeline: YAMNet cry-gate → logistic regression over YAMNet embeddings
 trained on donateacry (5 classes). Optional Gemini second opinion via
-`GEMINI_API_KEY` in `~/baby-voice-server/.env`.
+`GEMINI_API_KEY` in `~/crybaby-server/.env`.
 
 ## Deploy
 
 ```bash
-rsync -a server/ yourserver:baby-voice-server/
-ssh yourserver 'cd baby-voice-server && python3 -m venv venv && venv/bin/pip install -r requirements.txt'
-ssh yourserver 'cd baby-voice-server && venv/bin/python train.py'   # clones corpus, ~5 min
-ssh yourserver 'mkdir -p .config/systemd/user && cp baby-voice-server/systemd/baby-voice.service .config/systemd/user/ && systemctl --user daemon-reload && systemctl --user enable --now baby-voice'
+rsync -a server/ yourserver:crybaby-server/
+ssh yourserver 'cd crybaby-server && python3 -m venv venv && venv/bin/pip install -r requirements.txt'
+ssh yourserver 'cd crybaby-server && venv/bin/python train.py'   # clones corpus, ~5 min
+ssh yourserver 'mkdir -p .config/systemd/user && cp crybaby-server/systemd/crybaby.service .config/systemd/user/ && systemctl --user daemon-reload && systemctl --user enable --now crybaby'
 ```
 
 ## Test

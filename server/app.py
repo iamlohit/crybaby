@@ -1,4 +1,4 @@
-"""baby-voice classifier service.
+"""crybaby classifier service.
 
 POST /analyze with a WAV body (or multipart 'file') ->
   { is_cry, cry_confidence, results: [{label, prob}], top, ambient, second_opinion? }
@@ -30,7 +30,7 @@ LABEL_TEXT = {
     "burping": "Needs burping",
 }
 
-app = FastAPI(title="baby-voice classifier")
+app = FastAPI(title="crybaby classifier")
 _bundle = joblib.load(MODEL_PATH) if MODEL_PATH.exists() else None
 
 

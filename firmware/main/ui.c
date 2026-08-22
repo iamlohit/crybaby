@@ -1,4 +1,4 @@
-/* baby-voice UI — HIG-derived design for 240x240 LVGL, button-driven.
+/* crybaby UI — HIG-derived design for 240x240 LVGL, button-driven.
  * System: pure-black bg; SF-dark-palette accents; Montserrat scale 14/16/20/28/48;
  * sentence case; one primary action per screen; instant state feedback. */
 #include "ui.h"

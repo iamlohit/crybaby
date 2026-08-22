@@ -50,9 +50,9 @@ idf.py set-target esp32s3 && idf.py build
 
 **Remote (from the repo root on your laptop; `buildbox` = your build host):**
 ```bash
-rsync -a --exclude build firmware/ buildbox:baby-voice-firmware/
-ssh buildbox 'bash -lc "source ~/esp/esp-idf/export.sh >/dev/null && cd ~/baby-voice-firmware && idf.py set-target esp32s3 && idf.py build"'
-scp buildbox:baby-voice-firmware/build/{baby_voice.bin,bootloader/bootloader.bin,partition_table/partition-table.bin} build-artifacts/
+rsync -a --exclude build firmware/ buildbox:crybaby-firmware/
+ssh buildbox 'bash -lc "source ~/esp/esp-idf/export.sh >/dev/null && cd ~/crybaby-firmware && idf.py set-target esp32s3 && idf.py build"'
+scp buildbox:crybaby-firmware/build/{crybaby.bin,bootloader/bootloader.bin,partition_table/partition-table.bin} build-artifacts/
 ```
 
 ## Enter USB download mode (always manual on this board)
@@ -73,7 +73,7 @@ in ONE command. Multi-step scripts will never work on this board.
 esptool --port $PORT --baud 230400 --connect-attempts 20 write-flash \
   0x0     build-artifacts/bootloader.bin \
   0x8000  build-artifacts/partition-table.bin \
-  0x10000 build-artifacts/baby_voice.bin
+  0x10000 build-artifacts/crybaby.bin
 ```
 
 Success = `Hash of data verified` three times, then an automatic reset into the app.
@@ -83,7 +83,7 @@ Success = `Hash of data verified` three times, then an automatic reset into the 
 (ideal for releases and for handing to someone without the repo):
 ```bash
 esptool --chip esp32s3 merge-bin -o crybaby-full.bin --flash-size 16MB \
-  0x0 bootloader.bin 0x8000 partition-table.bin 0x10000 baby_voice.bin
+  0x0 bootloader.bin 0x8000 partition-table.bin 0x10000 crybaby.bin
 esptool --port $PORT --baud 230400 --connect-attempts 20 write-flash 0x0 crybaby-full.bin
 ```
 
