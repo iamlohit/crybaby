@@ -16,11 +16,29 @@ static adc_oneshot_unit_handle_t adc;
 
 static int battery_percent(void)
 {
+    /* stock power_manager calibration: +80 raw offset, rolling 3-sample average,
+       linear interpolation between 20%-step breakpoints */
+    static const struct { int adc, level; } levels[] = {
+        {2030, 0}, {2134, 20}, {2252, 40}, {2370, 60}, {2488, 80}, {2606, 100}};
+    static int hist[3], nhist = 0, pos = 0;
     int raw = 0;
     if (adc_oneshot_read(adc, BAT_ADC_CHANNEL, &raw) != ESP_OK) return -1;
-    /* rough linear map calibrated against stock fw readings (2350=empty, 2620=full) */
-    int pct = (raw - 2350) * 100 / (2620 - 2350);
-    return pct < 0 ? 0 : pct > 100 ? 100 : pct;
+    hist[pos] = raw + 80;
+    pos = (pos + 1) % 3;
+    if (nhist < 3) nhist++;
+    int avg = 0;
+    for (int i = 0; i < nhist; i++) avg += hist[i];
+    avg /= nhist;
+    if (avg < levels[0].adc) return 0;
+    for (int i = 0; i < 5; i++)
+        if (avg < levels[i + 1].adc)
+            return levels[i].level + (avg - levels[i].adc) * 20 / (levels[i + 1].adc - levels[i].adc);
+    return 100;
+}
+
+static bool charger_attached(void)
+{
+    return gpio_get_level(BAT_CHARGING_GPIO) == 1;
 }
 
 static bool button_pressed(void)
@@ -103,6 +121,11 @@ void app_main(void)
         .pull_up_en = GPIO_PULLUP_ENABLE,
     };
     gpio_config(&btn);
+    gpio_config_t chg = {
+        .pin_bit_mask = 1ULL << BAT_CHARGING_GPIO,
+        .mode = GPIO_MODE_INPUT,
+    };
+    gpio_config(&chg);
     adc_oneshot_unit_init_cfg_t adc_cfg = { .unit_id = ADC_UNIT_1 };
     adc_oneshot_new_unit(&adc_cfg, &adc);
     adc_oneshot_chan_cfg_t ch = { .atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_12 };
@@ -115,8 +138,9 @@ void app_main(void)
     bool wifi = net_wait_connected(15000);
     if (!wifi) ESP_LOGW(TAG, "wifi not connected yet, continuing");
 
-    ui_show_idle(battery_percent(), wifi);
+    ui_show_idle(battery_percent(), wifi, charger_attached());
     bool showing_result = false;
+    bool last_chg = charger_attached();
     int idle_refresh = 0;
     while (true) {
         if (button_pressed()) {
@@ -125,10 +149,15 @@ void app_main(void)
             idle_refresh = 0;
         } else if (showing_result && ++idle_refresh > 3000) {
             /* return to idle ~30 s after a result */
-            ui_show_idle(battery_percent(), net_wait_connected(0));
+            ui_show_idle(battery_percent(), net_wait_connected(0), charger_attached());
             showing_result = false;
+        } else if (!showing_result && charger_attached() != last_chg) {
+            /* cable plugged/unplugged: reflect immediately */
+            last_chg = charger_attached();
+            ui_show_idle(battery_percent(), net_wait_connected(0), last_chg);
+            idle_refresh = 0;
         } else if (!showing_result && ++idle_refresh > 6000) {
-            ui_show_idle(battery_percent(), net_wait_connected(0));  /* refresh battery */
+            ui_show_idle(battery_percent(), net_wait_connected(0), charger_attached());
             idle_refresh = 0;
         }
         vTaskDelay(pdMS_TO_TICKS(10));

@@ -29,7 +29,8 @@
 #define LCD_V_RES       240
 
 /* Battery */
-#define BAT_ADC_CHANNEL ADC_CHANNEL_7   /* ADC1 */
+#define BAT_ADC_CHANNEL   ADC_CHANNEL_7 /* ADC1 */
+#define BAT_CHARGING_GPIO GPIO_NUM_9    /* high while charger attached (stock power_manager) */
 
 /* Recording */
 #define RECORD_SECONDS  7

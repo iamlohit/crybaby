@@ -13,7 +13,7 @@ typedef struct {
     int n;
 } ui_result_t;
 
-void ui_show_idle(int battery_pct, bool wifi_ok);
+void ui_show_idle(int battery_pct, bool wifi_ok, bool charging);
 void ui_show_recording(int total_seconds);
 void ui_recording_tick(int seconds_done, int total_seconds);
 void ui_show_analyzing(void);

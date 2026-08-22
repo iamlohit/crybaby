@@ -29,9 +29,23 @@ Board definition: `xiaozhi-esp32/main/boards/zhengchen/1.54tft-wifi/` (has `conf
 | I2S mic (std, INMP441-class) | WS=4, SCK=5, DIN=6 | 16 kHz capture — exactly what cry analysis needs |
 | I2S speaker amp | DOUT=7, BCLK=15, LRCK=16 | 24 kHz playback |
 | Buttons | BOOT=0 (left), Vol+=10, Vol−=39 (top) | left button doubles as download-mode entry |
-| LCD 240×240 SPI (ST7789-class) | SDA=41, SCL=42, RES=45, DC=40, CS=21 | LVGL-ready |
+| LCD 240×240 SPI (ST7789-class) | SDA=41, SCL=42, RES=45, DC=40, CS=21 | **no touch** — SDA/SCL here are SPI data/clock, board has no I2C bus or touch controller; input is the 3 buttons |
 | Backlight | GPIO20 PWM | brightness control |
-| Battery | ADC1_CH7 sense, charging-detect GPIO, on-die temp sensor | stock fw showed ~85%, charging detect works |
+| Battery | ADC1_CH7 sense, charging-detect on GPIO9 (high=charger), on-die temp sensor | stock calibration: +80 raw offset, 3-sample avg, breakpoints 2030→0 % … 2606→100 % |
+
+## Sensor inventory (complete)
+
+The device senses exactly four things — nothing else is populated:
+
+| Sensor | Interface | What it measures |
+|---|---|---|
+| MEMS microphone (INMP441-class) | I2S | the only environmental sensor — 16 kHz mono audio |
+| Battery voltage | ADC1_CH7 (divider) | pack voltage → % via stock breakpoint table |
+| Charger presence | GPIO9 digital | high while USB charger attached |
+| Die temperature | ESP32-S3 internal | chip temp (not room temp; stock logged it) |
+
+No touchscreen, no IMU/accelerometer, no ambient-light, no humidity/room-temp, no camera.
+Radios: Wi-Fi 2.4 GHz + BLE 5 (BLE unused by both stock and crybaby firmware).
 
 ## Flash layout (stock)
 

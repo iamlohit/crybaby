@@ -62,6 +62,11 @@ The straps hide on the case buttons — **middle = GPIO0 (boot)**, **left = powe
 > Plug in USB → **hold middle** → **tap power** → keep holding middle ~2 s → release.
 > Screen goes black **and stays black** = ready. UI comes back = retry.
 
+Best practice: **keep holding the middle button until esptool starts writing.** The
+port-open RTS pulse resets the chip; with GPIO0 still held low the reset lands back in
+download mode instead of booting the app (the usual cause of "Invalid head of packet").
+If the port disappears from `/dev` entirely, re-seat the USB-C plug flipped 180° first.
+
 ## Flash (single invocation — this is a hard rule)
 
 RTS is hardwired to chip reset, and opening the serial port pulses RTS. Consequence:

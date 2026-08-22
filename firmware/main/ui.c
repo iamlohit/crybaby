@@ -36,14 +36,15 @@ static void load(lv_obj_t *s)
     lv_screen_load_anim(s, LV_SCR_LOAD_ANIM_FADE_IN, 120, 0, true);
 }
 
-void ui_show_idle(int battery_pct, bool wifi_ok)
+void ui_show_idle(int battery_pct, bool wifi_ok, bool charging)
 {
     lvgl_port_lock(0);
     lv_obj_t *s = scr();
 
     /* status bar: caption size, muted */
     char buf[32];
-    snprintf(buf, sizeof buf, "%s  %d%%", wifi_ok ? LV_SYMBOL_WIFI : "", battery_pct);
+    snprintf(buf, sizeof buf, "%s  %s%d%%", wifi_ok ? LV_SYMBOL_WIFI : "",
+             charging ? LV_SYMBOL_CHARGE " " : "", battery_pct);
     lv_obj_t *st = label(s, buf, &lv_font_montserrat_14, COL_MUTED);
     lv_obj_align(st, LV_ALIGN_TOP_RIGHT, -12, 10);
 
