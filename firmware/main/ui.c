@@ -60,7 +60,7 @@ void ui_show_idle(int battery_pct, bool wifi_ok, bool charging)
 
     lv_obj_t *t = label(s, "Cry analyzer", &lv_font_montserrat_20, COL_TEXT);
     lv_obj_align(t, LV_ALIGN_CENTER, 0, 44);
-    lv_obj_t *hint = label(s, "Press the side button\nwhen baby cries", &lv_font_montserrat_14, COL_MUTED);
+    lv_obj_t *hint = label(s, "Middle button: analyze cry\nHold right button to talk", &lv_font_montserrat_14, COL_MUTED);
     lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -18);
 
@@ -159,6 +159,104 @@ void ui_show_result(const ui_result_t *r)
 
     lv_obj_t *hint = label(s, "Press to listen again", &lv_font_montserrat_14, COL_MUTED);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -10);
+    load(s);
+    lvgl_port_unlock();
+}
+
+void ui_show_listening(void)
+{
+    lvgl_port_lock(0);
+    lv_obj_t *s = scr();
+
+    lv_obj_t *dot = lv_obj_create(s);
+    lv_obj_set_size(dot, 14, 14);
+    lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(dot, COL_RED, 0);
+    lv_obj_set_style_border_width(dot, 0, 0);
+    lv_obj_align(dot, LV_ALIGN_TOP_MID, -44, 16);
+    lv_obj_t *t = label(s, "Listening", &lv_font_montserrat_16, COL_RED);
+    lv_obj_align(t, LV_ALIGN_TOP_MID, 12, 12);
+
+    lv_obj_t *circle = lv_obj_create(s);
+    lv_obj_set_size(circle, 96, 96);
+    lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(circle, COL_CARD, 0);
+    lv_obj_set_style_border_width(circle, 0, 0);
+    lv_obj_align(circle, LV_ALIGN_CENTER, 0, -8);
+    lv_obj_t *mic = label(circle, LV_SYMBOL_AUDIO, &lv_font_montserrat_28, COL_RED);
+    lv_obj_center(mic);
+
+    lv_obj_t *hint = label(s, "Release to send", &lv_font_montserrat_14, COL_MUTED);
+    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -18);
+    load(s);
+    lvgl_port_unlock();
+}
+
+void ui_show_thinking(void)
+{
+    lvgl_port_lock(0);
+    lv_obj_t *s = scr();
+    lv_obj_t *sp = lv_spinner_create(s);
+    lv_obj_set_size(sp, 72, 72);
+    lv_obj_set_style_arc_color(sp, COL_CARD, LV_PART_MAIN);
+    lv_obj_set_style_arc_color(sp, COL_BLUE, LV_PART_INDICATOR);
+    lv_obj_align(sp, LV_ALIGN_CENTER, 0, -24);
+    lv_obj_t *t = label(s, "Thinking", &lv_font_montserrat_20, COL_TEXT);
+    lv_obj_align(t, LV_ALIGN_CENTER, 0, 40);
+    load(s);
+    lvgl_port_unlock();
+}
+
+void ui_show_answer(const char *transcript, const char *reply)
+{
+    lvgl_port_lock(0);
+    lv_obj_t *s = scr();
+
+    lv_obj_t *you = label(s, "You said", &lv_font_montserrat_14, COL_MUTED);
+    lv_obj_align(you, LV_ALIGN_TOP_MID, 0, 14);
+    lv_obj_t *q = label(s, transcript, &lv_font_montserrat_14, COL_MUTED);
+    lv_label_set_long_mode(q, LV_LABEL_LONG_WRAP);
+    lv_obj_set_width(q, 216);
+    lv_obj_set_style_text_align(q, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(q, LV_ALIGN_TOP_MID, 0, 34);
+
+    lv_obj_t *r = label(s, reply, &lv_font_montserrat_16, COL_TEXT);
+    lv_label_set_long_mode(r, LV_LABEL_LONG_WRAP);
+    lv_obj_set_width(r, 216);
+    lv_obj_set_style_text_align(r, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(r, LV_ALIGN_CENTER, 0, 20);
+
+    lv_obj_t *hint = label(s, "Hold right button to talk", &lv_font_montserrat_14, COL_MUTED);
+    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -10);
+    load(s);
+    lvgl_port_unlock();
+}
+
+void ui_show_volume(int pct)
+{
+    lvgl_port_lock(0);
+    lv_obj_t *s = scr();
+
+    lv_obj_t *icon = label(s, pct == 0 ? LV_SYMBOL_MUTE : LV_SYMBOL_VOLUME_MAX,
+                           &lv_font_montserrat_28, pct == 0 ? COL_MUTED : COL_BLUE);
+    lv_obj_align(icon, LV_ALIGN_CENTER, 0, -50);
+
+    char buf[8];
+    snprintf(buf, sizeof buf, "%d%%", pct);
+    lv_obj_t *v = label(s, buf, &lv_font_montserrat_48, COL_TEXT);
+    lv_obj_align(v, LV_ALIGN_CENTER, 0, 4);
+
+    lv_obj_t *bar = lv_bar_create(s);
+    lv_obj_set_size(bar, 184, 8);
+    lv_bar_set_range(bar, 0, 100);
+    lv_bar_set_value(bar, pct, LV_ANIM_ON);
+    lv_obj_set_style_bg_color(bar, COL_CARD, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(bar, pct == 0 ? COL_MUTED : COL_BLUE, LV_PART_INDICATOR);
+    lv_obj_align(bar, LV_ALIGN_CENTER, 0, 54);
+
+    lv_obj_t *hint = label(s, "Left: quieter\nLeft + right: louder", &lv_font_montserrat_14, COL_MUTED);
+    lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -12);
     load(s);
     lvgl_port_unlock();
 }

@@ -75,7 +75,7 @@ in ONE command. Multi-step scripts will never work on this board.
 
 ```bash
 # macOS:  PORT=/dev/cu.wchusbserial110      Linux:  PORT=/dev/ttyUSB0
-esptool --port $PORT --baud 230400 --connect-attempts 20 write-flash \
+esptool --port $PORT --baud 921600 --connect-attempts 20 write-flash \
   0x0     build-artifacts/bootloader.bin \
   0x8000  build-artifacts/partition-table.bin \
   0x10000 build-artifacts/crybaby.bin
@@ -84,12 +84,18 @@ esptool --port $PORT --baud 230400 --connect-attempts 20 write-flash \
 Success = `Hash of data verified` three times, then an automatic reset into the app.
 (`idf.py flash` on a local build works too — it issues exactly one invocation.)
 
+**Baud**: 921600 is verified good on this board — 15.3 s vs 41.9 s at 230400 (771 vs
+282 kbit/s), hash verified. Writes are what's reliable here; the read flakiness in
+"USB link quirks" below is unchanged by baud. If a flash ever fails mid-write, step
+down 921600 → 460800 → 230400 (each retry needs a fresh download-mode entry, since the
+failed invocation already reset the chip).
+
 **Single-file alternative** — merge once, then flashing is one file at one offset
 (ideal for releases and for handing to someone without the repo):
 ```bash
 esptool --chip esp32s3 merge-bin -o crybaby-full.bin --flash-size 16MB \
   0x0 bootloader.bin 0x8000 partition-table.bin 0x10000 crybaby.bin
-esptool --port $PORT --baud 230400 --connect-attempts 20 write-flash 0x0 crybaby-full.bin
+esptool --port $PORT --baud 921600 --connect-attempts 20 write-flash 0x0 crybaby-full.bin
 ```
 
 ## USB link quirks (when nothing works)
@@ -98,8 +104,8 @@ esptool --port $PORT --baud 230400 --connect-attempts 20 write-flash 0x0 crybaby
    the USB bus: macOS `ioreg -p IOUSB | grep -i serial` · Linux `lsusb | grep 1a86`.
 2. **USB-C data pins are single-sided** on this board — flip the plug 180°.
 3. **Charge-only cables are everywhere** — if the bus stays empty, swap cables first.
-4. **Bulk reads (device→host) are unreliable** — writes are solid at 230400, but
-   full-flash dumps may die mid-stream. Keep reads small (the 24 KB NVS backup works).
+4. **Bulk reads (device→host) are unreliable** — writes are solid (verified to 921600),
+   but full-flash dumps may die mid-stream. Keep reads small (the 24 KB NVS backup works).
 5. **Serial monitoring**: deassert DTR **and** RTS before opening the port (pyserial:
    `s = serial.Serial(); s.rts = s.dtr = False; s.port = PORT; s.open()`), otherwise the
    chip is held in reset and you read nothing. `idf.py monitor` handles this correctly.

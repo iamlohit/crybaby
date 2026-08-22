@@ -42,6 +42,17 @@ sequenceDiagram
 - Optional **LLM second opinion** — set `GEMINI_API_KEY` and each response also carries an
   independent [Gemini audio-understanding](https://ai.google.dev/gemini-api/docs/interactions/audio) verdict.
 
+## Talk to it
+
+Hold the right-hand button and ask the device a question about itself — "what sample rate
+does your mic use?", "how accurate are you really?" — and it answers out loud. Speech goes
+to a second service on your LAN ([`server-voicebot/`](server-voicebot/)) that transcribes
+with faster-whisper, answers from this repo's own docs plus a live read of the deployed
+classifier, and speaks back through Piper. Nothing leaves your network except the LLM call.
+
+Buttons: middle analyzes a cry, right-hold talks, left lowers volume, hold-left + tap-right
+raises it.
+
 ## The hardware
 
 Built for the **Zhengchen ZC-1.54TFT-WiFi** — a ubiquitous ~$15 "xiaozhi" AI-chatbot toy
@@ -100,8 +111,9 @@ at least you're only ever ranking actual cries. Improving the minority classes
 
 | Path | What |
 |---|---|
-| [`firmware/`](firmware/) | ESP-IDF 5.5 app — I2S capture, Wi-Fi POST, LVGL UI |
+| [`firmware/`](firmware/) | ESP-IDF 5.5 app — I2S capture + playback, Wi-Fi POST, LVGL UI |
 | [`server/`](server/) | FastAPI classifier — YAMNet gate + trained model + optional Gemini |
+| [`server-voicebot/`](server-voicebot/) | FastAPI voicebot — push-to-talk STT → LLM → TTS |
 | [`docs/HARDWARE.md`](docs/HARDWARE.md) | Device teardown: chip, pin map, flash layout |
 | [`docs/FLASHING.md`](docs/FLASHING.md) | Download-mode entry + flashing over unstable USB |
 | [`docs/RESEARCH.md`](docs/RESEARCH.md) | Prior art: ChatterBaby, Dunstan, datasets, model benchmarks |
@@ -112,7 +124,9 @@ at least you're only ever ranking actual cries. Improving the minority classes
 - [ ] Gemini second-opinion fusion on the result screen
 - [ ] History screen (last N analyses) using the spare flash partition
 - [ ] On-device TinyML fallback for Wi-Fi-less operation (ESP32-S3 has the headroom)
-- [ ] Speaker feedback (device has an unused I2S amp)
+- [x] Speaker output — boot chime and spoken voicebot replies
+- [ ] Speak the cry verdict aloud ("likely hungry, 72 percent")
+- [ ] Stream TTS sentence-by-sentence; barge-in to interrupt a reply
 
 ## Acknowledgments
 

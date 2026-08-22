@@ -12,3 +12,4 @@ firmware/dependencies.lock
 firmware/main/secrets.h
 backup/
 build-artifacts/
+server-voicebot/context/*.md

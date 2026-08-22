@@ -8,15 +8,18 @@
 #define MIC_I2S_DIN     GPIO_NUM_6
 #define MIC_SAMPLE_RATE 16000
 
-/* I2S speaker amp (unused in v1, reserved) */
+/* I2S speaker amp (no PA enable pin — confirmed against stock board file) */
 #define SPK_I2S_DOUT    GPIO_NUM_7
 #define SPK_I2S_BCLK    GPIO_NUM_15
 #define SPK_I2S_LRCK    GPIO_NUM_16
+#define SPK_SAMPLE_RATE 16000
 
-/* Buttons (active low) */
-#define BTN_MAIN        GPIO_NUM_0   /* left button: analyze */
-#define BTN_UP          GPIO_NUM_10
-#define BTN_DOWN        GPIO_NUM_39
+/* Buttons (active low). Physical layout: separate power button on the case's
+ * left edge; three buttons in a row on top, left-to-right = vol-down / analyze
+ * / vol-up — confirmed against the physical device 2026-08-22. */
+#define BTN_MAIN        GPIO_NUM_0   /* middle top button: analyze (single press) */
+#define BTN_UP          GPIO_NUM_10  /* right top button: vol-up / push-to-talk (hold) */
+#define BTN_DOWN        GPIO_NUM_39  /* left top button: vol-down, and chord modifier for vol-up */
 
 /* ST7789 240x240 SPI LCD */
 #define LCD_SPI_MOSI    GPIO_NUM_41
@@ -34,3 +37,4 @@
 
 /* Recording */
 #define RECORD_SECONDS  7
+#define TALK_MAX_SECONDS 15  /* push-to-talk hard ceiling; release stops it sooner */

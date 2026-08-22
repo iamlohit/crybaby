@@ -32,11 +32,13 @@ esp_err_t mic_init(void)
     return ESP_OK;
 }
 
-/* Record `seconds` of audio into a PSRAM buffer of int16 samples.
- * INMP441 delivers 24-bit data in 32-bit slots; shift down to 16-bit. */
-int16_t *mic_record(int seconds, size_t *out_samples, mic_progress_cb cb)
+/* Record up to `max_seconds` of audio into a PSRAM buffer of int16 samples.
+ * INMP441 delivers 24-bit data in 32-bit slots; shift down to 16-bit.
+ * If poll_cb is non-NULL, stops early (before max_seconds) once it returns false. */
+int16_t *mic_record_until(int max_seconds, size_t *out_samples, mic_progress_cb cb,
+                          mic_poll_cb poll_cb)
 {
-    const size_t n_samples = (size_t)MIC_SAMPLE_RATE * seconds;
+    const size_t n_samples = (size_t)MIC_SAMPLE_RATE * max_seconds;
     int16_t *pcm = heap_caps_malloc(n_samples * sizeof(int16_t), MALLOC_CAP_SPIRAM);
     int32_t *chunk = heap_caps_malloc(4096 * sizeof(int32_t), MALLOC_CAP_DEFAULT);
     if (!pcm || !chunk) {
@@ -45,6 +47,7 @@ int16_t *mic_record(int seconds, size_t *out_samples, mic_progress_cb cb)
     }
     size_t done = 0;
     while (done < n_samples) {
+        if (poll_cb && !poll_cb()) break;
         size_t want = n_samples - done;
         if (want > 4096) want = 4096;
         size_t got_bytes = 0;
@@ -57,11 +60,16 @@ int16_t *mic_record(int seconds, size_t *out_samples, mic_progress_cb cb)
         if (cb) {
             static size_t last_sec;
             size_t sec = done / MIC_SAMPLE_RATE;
-            if (sec != last_sec) { last_sec = sec; cb((int)sec, seconds); }
+            if (sec != last_sec) { last_sec = sec; cb((int)sec, max_seconds); }
         }
     }
     free(chunk);
     *out_samples = done;
     ESP_LOGI(TAG, "recorded %u samples", (unsigned)done);
     return pcm;
+}
+
+int16_t *mic_record(int seconds, size_t *out_samples, mic_progress_cb cb)
+{
+    return mic_record_until(seconds, out_samples, cb, NULL);
 }

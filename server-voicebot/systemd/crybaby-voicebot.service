@@ -1,0 +1,12 @@
+[Unit]
+Description=crybaby voicebot (push-to-talk chat about the device itself)
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/crybaby-voicebot
+ExecStart=%h/crybaby-voicebot/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8978
+Restart=on-failure
+EnvironmentFile=-%h/crybaby-voicebot/.env
+
+[Install]
+WantedBy=default.target

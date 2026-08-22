@@ -2,11 +2,13 @@
 #include "secrets.h"
 #include "esp_wifi.h"
 #include "esp_event.h"
+#include "esp_heap_caps.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
+#include "mbedtls/base64.h"
 #include <string.h>
 
 static const char *TAG = "net";
@@ -103,4 +105,74 @@ char *net_analyze(const int16_t *pcm, size_t n_samples, uint32_t sample_rate)
     }
     esp_http_client_cleanup(c);
     return resp;
+}
+
+/* Header value is base64 (server-side, keeps it ASCII-safe for non-ASCII replies);
+ * decode into a fixed caller buffer, empty string if missing or it doesn't fit. */
+static void get_b64_header(esp_http_client_handle_t c, const char *key, char *out, size_t out_cap)
+{
+    out[0] = '\0';
+    char *val = NULL;
+    if (esp_http_client_get_header(c, key, &val) != ESP_OK || !val) return;
+    size_t olen = 0;
+    if (mbedtls_base64_decode((unsigned char *)out, out_cap - 1, &olen,
+                              (const unsigned char *)val, strlen(val)) == 0) {
+        out[olen] = '\0';
+    }
+}
+
+/* POST PCM as WAV to the voicebot; caller owns *out_wav (malloc'd) on success. */
+bool net_talk(const int16_t *pcm, size_t n_samples, uint32_t sample_rate,
+              uint8_t **out_wav, size_t *out_len, net_talk_meta_t *meta)
+{
+    *out_wav = NULL;
+    *out_len = 0;
+    memset(meta, 0, sizeof(*meta));
+
+    uint8_t hdr[44];
+    wav_header(hdr, sample_rate, n_samples);
+
+    esp_http_client_config_t cfg = {
+        .url = TALK_URL,
+        .method = HTTP_METHOD_POST,
+        .timeout_ms = 30000,
+    };
+    esp_http_client_handle_t c = esp_http_client_init(&cfg);
+    esp_http_client_set_header(c, "Content-Type", "audio/wav");
+    size_t total = sizeof(hdr) + n_samples * 2;
+    bool ok = false;
+
+    if (esp_http_client_open(c, total) == ESP_OK) {
+        esp_http_client_write(c, (const char *)hdr, sizeof(hdr));
+        esp_http_client_write(c, (const char *)pcm, n_samples * 2);
+        int64_t clen = esp_http_client_fetch_headers(c);
+        int status = esp_http_client_get_status_code(c);
+        get_b64_header(c, "X-Transcript", meta->transcript, sizeof(meta->transcript));
+        get_b64_header(c, "X-Reply-Text", meta->reply, sizeof(meta->reply));
+        if (status == 200 && clen > 0 && clen < 4 * 1024 * 1024) {
+            /* A spoken reply is hundreds of KB (~600 KB seen live) — far more than
+             * internal DRAM has free alongside Wi-Fi and LVGL, so this must come
+             * from PSRAM, same as mic_record()'s capture buffer. */
+            uint8_t *buf = heap_caps_malloc((size_t)clen, MALLOC_CAP_SPIRAM);
+            if (!buf) {
+                ESP_LOGE(TAG, "no room for %d-byte reply", (int)clen);
+            } else {
+                int r = esp_http_client_read_response(c, (char *)buf, (int)clen);
+                if (r > 0) {
+                    *out_wav = buf;
+                    *out_len = (size_t)r;
+                    ok = true;
+                } else {
+                    ESP_LOGE(TAG, "reply body read failed (%d)", r);
+                    free(buf);
+                }
+            }
+        }
+        ESP_LOGI(TAG, "talk HTTP %d, wav=%d bytes, transcript=\"%s\" reply=\"%s\"",
+                 status, (int)*out_len, meta->transcript, meta->reply);
+    } else {
+        ESP_LOGE(TAG, "connect to %s failed", TALK_URL);
+    }
+    esp_http_client_cleanup(c);
+    return ok;
 }

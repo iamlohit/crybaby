@@ -19,3 +19,10 @@ void ui_recording_tick(int seconds_done, int total_seconds);
 void ui_show_analyzing(void);
 void ui_show_result(const ui_result_t *r);
 void ui_show_message(const char *title, const char *body, bool is_error);
+
+/* Voicebot (push-to-talk) states */
+void ui_show_listening(void);
+void ui_show_thinking(void);
+void ui_show_answer(const char *transcript, const char *reply);
+
+void ui_show_volume(int pct);

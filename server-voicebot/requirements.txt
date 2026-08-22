@@ -1,0 +1,10 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+faster-whisper>=1.0
+piper-tts>=1.7
+numpy>=1.26,<2.1
+soxr>=0.4
+joblib>=1.4
+scikit-learn>=1.5
+setuptools<81
