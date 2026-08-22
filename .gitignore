@@ -1,0 +1,14 @@
+.pio/
+build/
+.DS_Store
+*.bin
+.env
+secrets.h
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/managed_components/
+firmware/dependencies.lock
+firmware/main/secrets.h
+backup/
+build-artifacts/

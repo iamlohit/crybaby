@@ -1,0 +1,12 @@
+[Unit]
+Description=baby-voice cry classifier
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/baby-voice-server
+ExecStart=%h/baby-voice-server/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8977
+Restart=on-failure
+EnvironmentFile=-%h/baby-voice-server/.env
+
+[Install]
+WantedBy=default.target
