@@ -36,8 +36,8 @@ def _class_names() -> list[str]:
         return [row["display_name"] for row in csv.DictReader(f)]
 
 
-def yamnet_analyze(mono_16k: np.ndarray):
-    """Returns (cry_confidence, mean_embedding[1024], top_ambient[(name, score)...])."""
+def yamnet_analyze_frames(mono_16k: np.ndarray):
+    """Returns (cry_confidence, frame_embeddings[n, 1024], top_ambient[(name, score)...])."""
     scores, embeddings, _ = _yamnet()(mono_16k)
     scores = scores.numpy()          # [frames, 521]
     embeddings = embeddings.numpy()  # [frames, 1024]
@@ -48,4 +48,10 @@ def yamnet_analyze(mono_16k: np.ndarray):
     mean_scores = scores.mean(axis=0)
     top = np.argsort(mean_scores)[::-1][:3]
     ambient = [(names[i], float(mean_scores[i])) for i in top]
+    return cry_conf, embeddings, ambient
+
+
+def yamnet_analyze(mono_16k: np.ndarray):
+    """Returns (cry_confidence, mean_embedding[1024], top_ambient[(name, score)...])."""
+    cry_conf, embeddings, ambient = yamnet_analyze_frames(mono_16k)
     return cry_conf, embeddings.mean(axis=0), ambient

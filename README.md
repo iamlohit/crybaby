@@ -11,13 +11,51 @@ audio-ML pipeline tells you the most likely reason — *hungry, tired, uncomfort
 belly pain/gas, or needs burping* — right on its little screen.
 
 [![ESP32-S3](https://img.shields.io/badge/ESP32--S3-ESP--IDF%205.5-red?logo=espressif)](firmware/)
-[![Server](https://img.shields.io/badge/classifier-FastAPI%20%2B%20YAMNet-009688?logo=fastapi)](server/)
+[![Server](https://img.shields.io/badge/classifier-FastAPI%20·%20YAMNet%20gate%20·%20AST-009688?logo=fastapi)](server/)
 [![UI](https://img.shields.io/badge/UI-LVGL%209-blue)](firmware/main/ui.c)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
 ---
+
+## The system at a glance
+
+```mermaid
+flowchart LR
+    B(("👶 baby")) -->|cry| MIC
+    P(("🧑 parent")) -->|push-to-talk| MIC
+
+    subgraph DEV["📟 device · ESP32-S3"]
+        MIC["🎙 I2S mic<br/>16 kHz → PSRAM"] --> FW["⚙️ firmware<br/>state loop"]
+        FW --> LCD["👀 240×240 LCD<br/>emotive eyes + verdict"]
+        FW --> SPK["🔊 speaker"]
+    end
+
+    subgraph CLS["🧠 classifier · :8977"]
+        GATE["YAMNet cry gate"] --> AST["AST embeddings"] --> HEAD["logreg<br/>rank 5 causes"]
+        HEAD -.-> GEM["✨ Gemini second opinion<br/>(optional)"]
+    end
+
+    subgraph VB["🗣 voicebot · :8978"]
+        STT["faster-whisper STT"] --> LLM["LLM<br/>answers from the docs"] --> TTS["Piper TTS"]
+    end
+
+    FW ==>|"WAV · /analyze"| GATE
+    HEAD ==>|"ranked causes JSON"| FW
+    FW ==>|"speech WAV · /talk"| STT
+    TTS ==>|"reply WAV + transcript"| FW
+
+    style DEV fill:#0d1b2e,stroke:#4da3ff
+    style CLS fill:#0d2318,stroke:#3ddc84
+    style VB  fill:#1a1030,stroke:#b388ff
+```
+
+▶ **Animated version:** open [`dataflow.html`](dataflow.html) locally in a browser — live data
+pulses along every edge. Each component folder has its own pair too:
+[`firmware/dataflow.html`](firmware/dataflow.html) ·
+[`server/dataflow.html`](server/dataflow.html) ·
+[`server-voicebot/dataflow.html`](server-voicebot/dataflow.html).
 
 ## How it works
 
@@ -30,15 +68,19 @@ sequenceDiagram
     D->>D: record 7 s @ 16 kHz (I2S MEMS mic)
     D->>S: POST WAV over Wi-Fi
     S->>S: Stage 1 — YAMNet gate: "is this a baby cry?"
-    S->>S: Stage 2 — rank 5 causes (YAMNet embeddings + classifier)
+    S->>S: Stage 2 — rank 5 causes (AST embeddings + classifier)
     S-->>D: JSON: ranked causes + confidence
     D->>P: verdict + confidence bars on 240×240 LCD
 ```
 
 - **Stage 1 (cry gate)** — [YAMNet](https://tfhub.dev/google/yamnet/1) rejects TV noise,
   speech, and silence so you never get a confident-sounding answer to a non-cry.
-- **Stage 2 (cause ranking)** — logistic regression over YAMNet embeddings, trained on the
+- **Stage 2 (cause ranking)** — logistic regression over
+  [AST](https://huggingface.co/MIT/ast-finetuned-audioset-10-10-0.4593) embeddings
+  (winner of a 10-encoder bake-off, [docs/ACCURACY-V2.md](docs/ACCURACY-V2.md)), trained
+  with fold-safe augmentation on the
   [donateacry corpus](https://github.com/gveres/donateacry-corpus) (5 labeled cry causes).
+  `train.py` still builds a lighter YAMNet-only bundle for boxes without PyTorch.
 - Optional **LLM second opinion** — set `GEMINI_API_KEY` and each response also carries an
   independent [Gemini audio-understanding](https://ai.google.dev/gemini-api/docs/interactions/audio) verdict.
 
@@ -50,8 +92,15 @@ to a second service on your LAN ([`server-voicebot/`](server-voicebot/)) that tr
 with faster-whisper, answers from this repo's own docs plus a live read of the deployed
 classifier, and speaks back through Piper. Nothing leaves your network except the LLM call.
 
-Buttons: middle analyzes a cry, right-hold talks, left lowers volume, hold-left + tap-right
-raises it.
+| Button | Action | Function |
+|---|---|---|
+| Middle | tap | **analyze** — record 7 s, classify the cry |
+| Right | hold | **push-to-talk** — ask the device a question |
+| Left | tap | volume down |
+| Left (hold) + right (tap) | chord | volume up |
+
+Middle-button-held-while-tapping-power is also how you enter USB download mode for
+flashing — see [docs/FLASHING.md](docs/FLASHING.md).
 
 ## The hardware
 
@@ -92,20 +141,22 @@ battle-tested procedure in [docs/FLASHING.md](docs/FLASHING.md).
 
 Read this before trusting the gadget: the only public training data
 ([donateacry](https://github.com/gveres/donateacry-corpus)) is small (457 clips) and
-heavily skewed (84 % "hungry"). Our stratified 5-fold CV:
+heavily skewed (84 % "hungry"). Stratified 5-fold CV of the deployed model
+(AST + logistic regression + fold-safe augmentation, macro-F1 0.38 — up from the
+0.29 YAMNet baseline after a 10-encoder bake-off):
 
 | Class | F1 | Training clips |
 |---|---|---|
-| hungry | **0.84** | 382 |
-| discomfort | 0.17 | 27 |
-| belly pain | 0.21 | 16 |
-| tired | 0.04 | 24 |
-| burping | 0.00 | 8 |
+| hungry | **0.90** | 382 |
+| belly pain | 0.35 | 16 |
+| discomfort | 0.30 | 27 |
+| tired | 0.21 | 24 |
+| burping | 0.17 | 8 |
 
 Papers claiming 90 %+ on this dataset are typically inflated by augmentation leakage.
 Treat the output as a **ranked suggestion, never a diagnosis** — and the cry-gate ensures
-at least you're only ever ranking actual cries. Improving the minority classes
-(augmentation, frame-voting, more data) is the roadmap's top item.
+at least you're only ever ranking actual cries. The minority classes are data-starved;
+real parent-confirmed labels (feedback flow, roadmap) are the only fix left.
 
 ## Repo map
 
@@ -120,7 +171,8 @@ at least you're only ever ranking actual cries. Improving the minority classes
 
 ## Roadmap
 
-- [ ] Minority-class accuracy: augmentation + per-frame voting
+- [x] Minority-class accuracy: encoder bake-off + fold-safe augmentation (AST deployed, macro-F1 0.29 → 0.38)
+- [ ] "Was this right?" feedback flow → parent-confirmed labels ([docs/FEEDBACK-FLOW.md](docs/FEEDBACK-FLOW.md), designed)
 - [ ] Gemini second-opinion fusion on the result screen
 - [ ] History screen (last N analyses) using the spare flash partition
 - [ ] On-device TinyML fallback for Wi-Fi-less operation (ESP32-S3 has the headroom)

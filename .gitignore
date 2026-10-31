@@ -13,3 +13,7 @@ firmware/main/secrets.h
 backup/
 build-artifacts/
 server-voicebot/context/*.md
+scripts/gpu-train/.instance.json
+__pycache__/
+.vscode/
+scratch/

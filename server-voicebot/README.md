@@ -9,6 +9,32 @@ The system prompt is this project's own docs (README + docs/HARDWARE.md) plus a 
 read of the deployed classifier's model card — the bot answers from the actual repo,
 not a hand-written script.
 
+## Data flow
+
+```mermaid
+flowchart LR
+    subgraph TALK["POST /talk"]
+        IN["📥 speech WAV<br/>right button held"] --> STT["faster-whisper<br/>STT · CPU int8"]
+        STT -->|text| LLM["🤖 claude -p · haiku<br/>headless · session resumed"]
+        LLM -->|reply| FILT["speakable filter<br/>strip markdown"]
+        FILT --> TTS["Piper TTS<br/>hfc_female voice"]
+        TTS --> POST["🔉 resample 16 kHz<br/>+ peak normalise"]
+        POST --> OUT["📤 WAV + X-Transcript<br/>+ X-Reply-Text"]
+    end
+
+    subgraph CTX["assembled once at startup"]
+        DOCS["📚 README + HARDWARE.md"] --> SYS["🧾 system prompt<br/>honest · 3 short sentences"]
+        CARD["📦 live model card<br/>from deployed model.joblib"] --> SYS
+    end
+
+    SYS -.->|first turn only| LLM
+
+    style TALK fill:#1a1030,stroke:#b388ff
+    style CTX fill:#0d1b2e,stroke:#4da3ff
+```
+
+▶ **Animated version:** open [`dataflow.html`](dataflow.html) locally in a browser.
+
 ## Deploy
 
 Needs its own copy of the project docs alongside the code (kept out of git —
@@ -46,10 +72,15 @@ curl -s --data-binary @question.wav -H 'Content-Type: audio/wav' \
 
 | Var | Default | What |
 |---|---|---|
+| `TTS_ENGINE` | `kokoro` | `kokoro` (warm, resident in-process) or `piper` (fallback) |
+| `KOKORO_VOICE` | `af_bella` | Kokoro voice name |
+| `KOKORO_SPEED` | `1.0` | Kokoro speaking rate; <1.0 = slower |
 | `CLAUDE_BIN` | `claude` on PATH, else `~/.local/bin/claude` | path to the CLI |
 | `CLAUDE_MODEL` | `haiku` | model alias passed to `claude -p --model` |
 | `WHISPER_MODEL` | `base` | faster-whisper model size |
-| `PIPER_VOICE` | `en_US-lessac-medium` | voice name (must be downloaded into `voices/`) |
+| `PIPER_VOICE` | `en_US-hfc_female-medium` | voice name (must be downloaded into `voices/`) |
+| `PIPER_LENGTH_SCALE` | unset (voice default) | speaking rate; >1.0 = slower/clearer, e.g. `1.1` |
+| `PIPER_NOISE_SCALE` | unset (voice default 0.667) | prosody variance; lower = softer/steadier, e.g. `0.5` |
 | `PIPER_VOICE_DIR` | `voices/` next to app.py | where voice models are looked up |
 | `PIPER_BIN` | `venv/bin/piper` | path to the Piper binary |
 | `CLASSIFIER_MODEL_PATH` | `~/crybaby-server/model.joblib` | where to read the live model card from |

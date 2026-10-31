@@ -22,8 +22,16 @@ venv/bin/pip install -q -r requirements.txt
 
 echo "==> piper voice model (skipped if already present)"
 mkdir -p voices
-if [ ! -f "voices/${PIPER_VOICE:-en_US-lessac-medium}.onnx" ]; then
-    venv/bin/python -m piper.download_voices --download-dir voices "${PIPER_VOICE:-en_US-lessac-medium}"
+if [ ! -f "voices/${PIPER_VOICE:-en_US-hfc_female-medium}.onnx" ]; then
+    venv/bin/python -m piper.download_voices --download-dir voices "${PIPER_VOICE:-en_US-hfc_female-medium}"
+fi
+
+echo "==> kokoro model (fp32 — int8 is slower than real-time on desktop CPUs; skipped if present)"
+if [ ! -f voices/kokoro-v1.0.onnx ]; then
+    wget -q -O voices/kokoro-v1.0.onnx https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
+fi
+if [ ! -f voices/voices-v1.0.bin ]; then
+    wget -q -O voices/voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
 fi
 
 if ! command -v claude >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/claude" ]; then
@@ -35,7 +43,9 @@ echo "==> systemd user service"
 mkdir -p "$HOME/.config/systemd/user"
 cp systemd/crybaby-voicebot.service "$HOME/.config/systemd/user/"
 systemctl --user daemon-reload
-systemctl --user enable --now crybaby-voicebot
+# enable --now is a no-op on an already-running service — restart to pick up new code/config
+systemctl --user enable crybaby-voicebot
+systemctl --user restart crybaby-voicebot
 loginctl enable-linger "$USER" 2>/dev/null || echo "   (run: sudo loginctl enable-linger $USER — keeps service up after logout)"
 
 echo "==> firewall (open LAN access yourself, e.g.:)"

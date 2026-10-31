@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>crybaby — system data flow</title>
+<style>
+  :root {
+    --bg: #0b0d12; --panel: #12161f; --node: #1a2030; --text: #e8ecf4;
+    --muted: #8b93a7; --blue: #4da3ff; --green: #3ddc84; --orange: #ff9f43;
+    --purple: #b388ff; --pink: #ff6b9d; --teal: #40e0d0; --red: #ff5d5d;
+  }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { text-align: center; padding: 28px 16px 4px; }
+  header h1 { margin: 0; font-size: 26px; letter-spacing: .5px; }
+  header p { margin: 6px 0 0; color: var(--muted); }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 12px 16px 40px; }
+  svg { width: 100%; height: auto; display: block; }
+  .node { fill: var(--node); stroke-width: 2; rx: 12; }
+  .grp { fill: var(--panel); stroke-width: 1.5; stroke-dasharray: 4 4; opacity: .9; }
+  text { fill: var(--text); font: 600 13px -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .sub { fill: var(--muted); font-weight: 400; font-size: 11px; }
+  .grplbl { font-size: 12px; letter-spacing: 1.2px; font-weight: 700; }
+  .lbl { font-size: 11.5px; font-weight: 600; }
+  .flow { fill: none; stroke-width: 2.5; stroke-linecap: round;
+    stroke-dasharray: 9 13; animation: dash 1.1s linear infinite; }
+  .flow.slow { animation-duration: 1.7s; }
+  .dot { filter: drop-shadow(0 0 6px currentColor); }
+  @keyframes dash { to { stroke-dashoffset: -22; } }
+  .legend { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap;
+    color: var(--muted); font-size: 12.5px; padding-top: 6px; }
+  .legend span::before { content: "━━ "; font-weight: 700; }
+  .l-cry::before  { color: var(--orange); } .l-wav::before { color: var(--blue); }
+  .l-json::before { color: var(--green); } .l-talk::before { color: var(--purple); }
+  .l-tts::before  { color: var(--pink); }
+</style>
+</head>
+<body>
+<header>
+  <h1>👶 crybaby — how a cry becomes an answer</h1>
+  <p>$15 ESP32-S3 toy, reflashed · two LAN services · nothing leaves your network except the optional LLM calls</p>
+</header>
+<div class="wrap">
+<svg viewBox="0 0 1040 560" role="img" aria-label="crybaby system data flow diagram">
+
+  <!-- ===================== groups ===================== -->
+  <rect class="grp" x="150" y="60" width="270" height="440" rx="16" stroke="#3a4a68"/>
+  <text class="grplbl" x="285" y="86" text-anchor="middle" fill="#7fa8e0">DEVICE · ESP32-S3</text>
+
+  <rect class="grp" x="530" y="60" width="470" height="200" rx="16" stroke="#2f5d4a"/>
+  <text class="grplbl" x="765" y="86" text-anchor="middle" fill="#69d2a1">CLASSIFIER SERVICE · :8977</text>
+
+  <rect class="grp" x="530" y="300" width="470" height="200" rx="16" stroke="#5a4a78"/>
+  <text class="grplbl" x="765" y="326" text-anchor="middle" fill="#b9a0e8">VOICEBOT SERVICE · :8978</text>
+
+  <!-- ===================== actors ===================== -->
+  <text x="60" y="150" text-anchor="middle" font-size="34">👶</text>
+  <text class="sub" x="60" y="172" text-anchor="middle">baby cries</text>
+  <text x="60" y="400" text-anchor="middle" font-size="34">🧑</text>
+  <text class="sub" x="60" y="422" text-anchor="middle">parent asks</text>
+
+  <!-- ===================== device nodes ===================== -->
+  <rect class="node" x="180" y="110" width="210" height="52" stroke="var(--orange)"/>
+  <text x="285" y="132" text-anchor="middle">🎙 I2S MEMS mic</text>
+  <text class="sub" x="285" y="149" text-anchor="middle">16 kHz mono → PSRAM buffer</text>
+
+  <rect class="node" x="180" y="200" width="210" height="52" stroke="var(--blue)"/>
+  <text x="285" y="222" text-anchor="middle">⚙️ firmware core</text>
+  <text class="sub" x="285" y="239" text-anchor="middle">buttons · Wi-Fi POST · state</text>
+
+  <rect class="node" x="180" y="290" width="210" height="52" stroke="var(--teal)"/>
+  <text x="285" y="312" text-anchor="middle">👀 240×240 LCD</text>
+  <text class="sub" x="285" y="329" text-anchor="middle">emotive eyes · verdict bars</text>
+
+  <rect class="node" x="180" y="380" width="210" height="52" stroke="var(--pink)"/>
+  <text x="285" y="402" text-anchor="middle">🔊 speaker</text>
+  <text class="sub" x="285" y="419" text-anchor="middle">spoken replies · chime</text>
+
+  <!-- ===================== classifier nodes ===================== -->
+  <rect class="node" x="560" y="110" width="120" height="52" stroke="var(--green)"/>
+  <text x="620" y="132" text-anchor="middle">YAMNet gate</text>
+  <text class="sub" x="620" y="149" text-anchor="middle">is it a cry?</text>
+
+  <rect class="node" x="710" y="110" width="130" height="52" stroke="var(--green)"/>
+  <text x="775" y="132" text-anchor="middle">AST encoder</text>
+  <text class="sub" x="775" y="149" text-anchor="middle">audio embeddings</text>
+
+  <rect class="node" x="870" y="110" width="110" height="52" stroke="var(--green)"/>
+  <text x="925" y="132" text-anchor="middle">classifier</text>
+  <text class="sub" x="925" y="149" text-anchor="middle">rank 5 causes</text>
+
+  <rect class="node" x="660" y="192" width="210" height="46" stroke="#6b7690" stroke-dasharray="5 4"/>
+  <text x="765" y="211" text-anchor="middle">✨ LLM second opinion</text>
+  <text class="sub" x="765" y="228" text-anchor="middle">optional, Gemini audio</text>
+
+  <!-- ===================== voicebot nodes ===================== -->
+  <rect class="node" x="560" y="350" width="120" height="52" stroke="var(--purple)"/>
+  <text x="620" y="372" text-anchor="middle">whisper STT</text>
+  <text class="sub" x="620" y="389" text-anchor="middle">speech → text</text>
+
+  <rect class="node" x="710" y="350" width="130" height="52" stroke="var(--purple)"/>
+  <text x="775" y="372" text-anchor="middle">LLM</text>
+  <text class="sub" x="775" y="389" text-anchor="middle">answers from the docs</text>
+
+  <rect class="node" x="870" y="350" width="110" height="52" stroke="var(--purple)"/>
+  <text x="925" y="372" text-anchor="middle">Piper TTS</text>
+  <text class="sub" x="925" y="389" text-anchor="middle">text → voice</text>
+
+  <!-- ===================== flows ===================== -->
+  <!-- cry -> mic -->
+  <path id="p-cry" class="flow" stroke="var(--orange)" d="M 88 140 C 130 138, 140 136, 178 136"/>
+  <!-- mic -> firmware -->
+  <path id="p-mic" class="flow" stroke="var(--orange)" d="M 285 164 L 285 198"/>
+  <!-- firmware -> classifier (WAV up) -->
+  <path id="p-wav" class="flow" stroke="var(--blue)" d="M 392 214 C 470 200, 490 150, 558 138"/>
+  <text class="lbl" x="462" y="158" fill="var(--blue)">WAV · POST /analyze</text>
+  <!-- gate -> ast -> head -->
+  <path id="p-g1" class="flow slow" stroke="var(--green)" d="M 682 136 L 708 136"/>
+  <path id="p-g2" class="flow slow" stroke="var(--green)" d="M 842 136 L 868 136"/>
+  <!-- head -> gemini optional -->
+  <path class="flow slow" stroke="#6b7690" d="M 925 164 C 925 186, 890 200, 872 206"/>
+  <!-- classifier -> firmware (JSON back) -->
+  <path id="p-json" class="flow" stroke="var(--green)" d="M 558 176 C 480 200, 470 232, 394 238"/>
+  <text class="lbl" x="452" y="252" fill="var(--green)">ranked causes · JSON</text>
+  <!-- firmware -> LCD -->
+  <path id="p-lcd" class="flow" stroke="var(--teal)" d="M 285 254 L 285 288"/>
+  <!-- parent speech -> firmware -->
+  <path id="p-ask" class="flow" stroke="var(--purple)" d="M 88 396 C 130 380, 140 260, 178 232"/>
+  <!-- firmware -> voicebot (talk) -->
+  <path id="p-talk" class="flow" stroke="var(--purple)" d="M 392 240 C 480 268, 490 350, 558 372"/>
+  <text class="lbl" x="440" y="330" fill="var(--purple)">speech WAV · POST /talk</text>
+  <!-- stt -> llm -> tts -->
+  <path id="p-v1" class="flow slow" stroke="var(--purple)" d="M 682 376 L 708 376"/>
+  <path id="p-v2" class="flow slow" stroke="var(--purple)" d="M 842 376 L 868 376"/>
+  <!-- tts -> speaker (voice back) -->
+  <path id="p-tts" class="flow" stroke="var(--pink)" d="M 925 404 C 925 480, 560 500, 394 414"/>
+  <text class="lbl" x="660" y="475" fill="var(--pink)">reply WAV + transcript</text>
+
+  <!-- ===================== traveling pulses ===================== -->
+  <circle class="dot" r="5" fill="var(--orange)">
+    <animateMotion dur="2.2s" repeatCount="indefinite"><mpath href="#p-cry"/></animateMotion>
+  </circle>
+  <circle class="dot" r="5" fill="var(--blue)">
+    <animateMotion dur="2.4s" repeatCount="indefinite"><mpath href="#p-wav"/></animateMotion>
+  </circle>
+  <circle class="dot" r="5" fill="var(--green)">
+    <animateMotion dur="2.4s" begin="1.2s" repeatCount="indefinite"><mpath href="#p-json"/></animateMotion>
+  </circle>
+  <circle class="dot" r="5" fill="var(--teal)">
+    <animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#p-lcd"/></animateMotion>
+  </circle>
+  <circle class="dot" r="5" fill="var(--purple)">
+    <animateMotion dur="2.8s" repeatCount="indefinite"><mpath href="#p-talk"/></animateMotion>
+  </circle>
+  <circle class="dot" r="5" fill="var(--pink)">
+    <animateMotion dur="3.2s" begin="1.4s" repeatCount="indefinite"><mpath href="#p-tts"/></animateMotion>
+  </circle>
+</svg>
+
+<div class="legend">
+  <span class="l-cry">cry audio</span>
+  <span class="l-wav">analyze request</span>
+  <span class="l-json">ranked verdict</span>
+  <span class="l-talk">push-to-talk</span>
+  <span class="l-tts">spoken reply</span>
+</div>
+</div>
+</body>
+</html>

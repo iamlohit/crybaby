@@ -33,6 +33,22 @@ Board definition: `xiaozhi-esp32/main/boards/zhengchen/1.54tft-wifi/` (has `conf
 | Backlight | GPIO20 PWM | brightness control |
 | Battery | ADC1_CH7 sense, charging-detect on GPIO9 (high=charger), on-die temp sensor | stock calibration: +80 raw offset, 3-sample avg, breakpoints 2030→0 % … 2606→100 % |
 
+## Button map (crybaby firmware — not stock)
+
+Three physical buttons on the top edge, left to right. This is the *function* mapping;
+see the Peripherals table above for GPIO pin numbers.
+
+| Position | GPIO | Press | Function |
+|---|---|---|---|
+| Left | 39 (Vol−) | tap | volume down |
+| Left | 39 (Vol−) | hold, then tap **right** while held | volume up (chord — left alone only ever lowers) |
+| Middle | 0 (BOOT) | tap | **analyze**: record a 7 s cry clip, POST to the classifier, show ranked causes on screen |
+| Middle | 0 (BOOT) | hold while tapping power | enter USB download mode (flashing only, not a runtime function) |
+| Right | 10 (Vol+) | hold | **push-to-talk**: record while held, release to send to the voicebot, hear + read the reply |
+
+There is no separate "right button, brief tap" function — a short right press below the
+hold threshold is just ignored.
+
 ## Sensor inventory (complete)
 
 The device senses exactly four things — nothing else is populated:

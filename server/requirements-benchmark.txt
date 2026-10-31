@@ -1,0 +1,8 @@
+# Extras for the encoder bake-off (server/benchmark.py) on top of requirements.txt.
+# CPU-only torch is fine; install with:
+#   venv/bin/pip install -r requirements-benchmark.txt --extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.3
+transformers>=4.44
+# Optional encoders — uncomment to enable:
+# speechbrain>=1.0        # ecapa (Ubenwa cry-domain encoder)
+# panns-inference>=0.1.1  # panns (CNN14)

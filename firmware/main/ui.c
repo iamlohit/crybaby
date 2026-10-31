@@ -2,6 +2,7 @@
  * System: pure-black bg; SF-dark-palette accents; Montserrat scale 14/16/20/28/48;
  * sentence case; one primary action per screen; instant state feedback. */
 #include "ui.h"
+#include "eyes.h"
 #include "esp_lvgl_port.h"
 #include <stdio.h>
 
@@ -48,18 +49,9 @@ void ui_show_idle(int battery_pct, bool wifi_ok, bool charging)
     lv_obj_t *st = label(s, buf, &lv_font_montserrat_14, COL_MUTED);
     lv_obj_align(st, LV_ALIGN_TOP_RIGHT, -12, 10);
 
-    /* primary: audio glyph inside a circle, the single focal point */
-    lv_obj_t *circle = lv_obj_create(s);
-    lv_obj_set_size(circle, 96, 96);
-    lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_color(circle, COL_CARD, 0);
-    lv_obj_set_style_border_width(circle, 0, 0);
-    lv_obj_align(circle, LV_ALIGN_CENTER, 0, -24);
-    lv_obj_t *mic = label(circle, LV_SYMBOL_AUDIO, &lv_font_montserrat_28, COL_BLUE);
-    lv_obj_center(mic);
+    /* primary: the face — calm wandering eyes as the single focal point */
+    eyes_create(s, EYES_MOOD_IDLE, -20);
 
-    lv_obj_t *t = label(s, "Cry analyzer", &lv_font_montserrat_20, COL_TEXT);
-    lv_obj_align(t, LV_ALIGN_CENTER, 0, 44);
     lv_obj_t *hint = label(s, "Middle button: analyze cry\nHold right button to talk", &lv_font_montserrat_14, COL_MUTED);
     lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -18);
@@ -118,11 +110,7 @@ void ui_show_analyzing(void)
 {
     lvgl_port_lock(0);
     lv_obj_t *s = scr();
-    lv_obj_t *sp = lv_spinner_create(s);
-    lv_obj_set_size(sp, 72, 72);
-    lv_obj_set_style_arc_color(sp, COL_CARD, LV_PART_MAIN);
-    lv_obj_set_style_arc_color(sp, COL_BLUE, LV_PART_INDICATOR);
-    lv_obj_align(sp, LV_ALIGN_CENTER, 0, -24);
+    eyes_create(s, EYES_MOOD_THINKING, -28);
     lv_obj_t *t = label(s, "Analyzing", &lv_font_montserrat_20, COL_TEXT);
     lv_obj_align(t, LV_ALIGN_CENTER, 0, 40);
     load(s);
@@ -177,14 +165,7 @@ void ui_show_listening(void)
     lv_obj_t *t = label(s, "Listening", &lv_font_montserrat_16, COL_RED);
     lv_obj_align(t, LV_ALIGN_TOP_MID, 12, 12);
 
-    lv_obj_t *circle = lv_obj_create(s);
-    lv_obj_set_size(circle, 96, 96);
-    lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_color(circle, COL_CARD, 0);
-    lv_obj_set_style_border_width(circle, 0, 0);
-    lv_obj_align(circle, LV_ALIGN_CENTER, 0, -8);
-    lv_obj_t *mic = label(circle, LV_SYMBOL_AUDIO, &lv_font_montserrat_28, COL_RED);
-    lv_obj_center(mic);
+    eyes_create(s, EYES_MOOD_LISTENING, -8);
 
     lv_obj_t *hint = label(s, "Release to send", &lv_font_montserrat_14, COL_MUTED);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -18);
@@ -196,11 +177,7 @@ void ui_show_thinking(void)
 {
     lvgl_port_lock(0);
     lv_obj_t *s = scr();
-    lv_obj_t *sp = lv_spinner_create(s);
-    lv_obj_set_size(sp, 72, 72);
-    lv_obj_set_style_arc_color(sp, COL_CARD, LV_PART_MAIN);
-    lv_obj_set_style_arc_color(sp, COL_BLUE, LV_PART_INDICATOR);
-    lv_obj_align(sp, LV_ALIGN_CENTER, 0, -24);
+    eyes_create(s, EYES_MOOD_THINKING, -28);
     lv_obj_t *t = label(s, "Thinking", &lv_font_montserrat_20, COL_TEXT);
     lv_obj_align(t, LV_ALIGN_CENTER, 0, 40);
     load(s);
@@ -212,19 +189,22 @@ void ui_show_answer(const char *transcript, const char *reply)
     lvgl_port_lock(0);
     lv_obj_t *s = scr();
 
+    /* happy squint up top while the reply is spoken — the face never leaves */
+    eyes_create(s, EYES_MOOD_HAPPY, -86);
+
     lv_obj_t *you = label(s, "You said", &lv_font_montserrat_14, COL_MUTED);
-    lv_obj_align(you, LV_ALIGN_TOP_MID, 0, 14);
+    lv_obj_align(you, LV_ALIGN_TOP_MID, 0, 66);
     lv_obj_t *q = label(s, transcript, &lv_font_montserrat_14, COL_MUTED);
     lv_label_set_long_mode(q, LV_LABEL_LONG_WRAP);
     lv_obj_set_width(q, 216);
     lv_obj_set_style_text_align(q, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(q, LV_ALIGN_TOP_MID, 0, 34);
+    lv_obj_align(q, LV_ALIGN_TOP_MID, 0, 86);
 
     lv_obj_t *r = label(s, reply, &lv_font_montserrat_16, COL_TEXT);
     lv_label_set_long_mode(r, LV_LABEL_LONG_WRAP);
     lv_obj_set_width(r, 216);
     lv_obj_set_style_text_align(r, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(r, LV_ALIGN_CENTER, 0, 20);
+    lv_obj_align(r, LV_ALIGN_CENTER, 0, 40);
 
     lv_obj_t *hint = label(s, "Hold right button to talk", &lv_font_montserrat_14, COL_MUTED);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -10);
@@ -265,6 +245,7 @@ void ui_show_message(const char *title, const char *body, bool is_error)
 {
     lvgl_port_lock(0);
     lv_obj_t *s = scr();
+    if (is_error) eyes_create(s, EYES_MOOD_SAD, -78);
     lv_obj_t *t = label(s, title, &lv_font_montserrat_20, is_error ? COL_RED : COL_TEXT);
     lv_obj_align(t, LV_ALIGN_CENTER, 0, -30);
     lv_obj_t *b = label(s, body, &lv_font_montserrat_14, COL_MUTED);
